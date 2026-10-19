@@ -1,5 +1,7 @@
 # tenantforge
 
+![Python](https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white) ![Django](https://img.shields.io/badge/Django-4.2_LTS-092E20?logo=django&logoColor=white) ![DRF](https://img.shields.io/badge/DRF-REST_API-A30000?logo=django&logoColor=white) ![Celery](https://img.shields.io/badge/Celery-tasks-37814A?logo=celery&logoColor=white) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white) ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+
 A small, production-shaped starter for multi-tenant SaaS on Django 4.2 LTS and Django REST
 Framework. All tenants share one database and one schema; every tenant-owned row carries an
 `organization_id`, and the ORM refuses to read or write tenant data without an active tenant.
