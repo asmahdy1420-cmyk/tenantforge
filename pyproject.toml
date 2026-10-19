@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tenantforge"
+version = "0.1.0"
+description = "Django multi-tenant SaaS starter: shared database, row-level tenant isolation, roles, API keys, plan limits and audit log."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Ahmed Mahdy", email = "mahdy@progma.tech" }]
+requires-python = ">=3.9"
+classifiers = [
+    "Framework :: Django",
+    "Framework :: Django :: 4.2",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "Django>=4.2,<5.0",
+    "djangorestframework>=3.14,<4",
+    "celery>=5.3,<6",
+    "redis>=5",
+    "psycopg[binary]>=3.1,<4",
+    "gunicorn>=21",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-django>=4.8",
+    "ruff>=0.6",
+]
+
+[tool.setuptools.packages.find]
+include = ["config*", "tenantforge*"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra --strict-markers"
+
+[tool.ruff]
+line-length = 100
+# Kept at py39 so the codebase stays importable on older interpreters.
+target-version = "py39"
+extend-exclude = ["**/migrations/*.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "DJ", "SIM", "RUF"]
+ignore = ["RUF012"]
+
+[tool.ruff.lint.per-file-ignores]
+"config/settings/*.py" = ["F403", "F405"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["config", "tenantforge"]
