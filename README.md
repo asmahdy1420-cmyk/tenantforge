@@ -1,10 +1,34 @@
 # tenantforge
 
-![Python](https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white) ![Django](https://img.shields.io/badge/Django-4.2_LTS-092E20?logo=django&logoColor=white) ![DRF](https://img.shields.io/badge/DRF-REST_API-A30000?logo=django&logoColor=white) ![Celery](https://img.shields.io/badge/Celery-tasks-37814A?logo=celery&logoColor=white) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white) ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-A small, production-shaped starter for multi-tenant SaaS on Django 4.2 LTS and Django REST
+A small starter for multi-tenant SaaS on Django 4.2 LTS and Django REST
 Framework. All tenants share one database and one schema; every tenant-owned row carries an
 `organization_id`, and the ORM refuses to read or write tenant data without an active tenant.
+
+## Screenshots
+
+Captured from a local run on SQLite with two demo tenants (`acme` and `globex`) and made-up users. Not production data.
+
+![Browsable API](docs/screenshots/browsable-api.png)
+
+The DRF browsable API for the `acme` tenant, resolved from the `acme.localhost` subdomain.
+
+![Tenant isolation](docs/screenshots/tenant-isolation.png)
+
+Each tenant sees only its own projects. A user who is not a member gets `403`, and another tenant's project id gives `404`.
+
+![TenantNotSetError](docs/screenshots/tenant-not-set-error.png)
+
+A query without an active tenant raises `TenantNotSetError`. Inside `tenant_context(org)` the same query is scoped.
+
+![Plan limit](docs/screenshots/plan-limit.png)
+
+The free plan allows three projects. The fourth request is refused with `plan_limit_exceeded`.
+
+![API key auth](docs/screenshots/api-key-auth.png)
+
+A key is tied to one tenant: it works there, gets `401` for another tenant, and an unknown key gets `401`.
 
 ## Why
 
@@ -34,11 +58,11 @@ forgot a `.filter(organization=...)`. tenantforge moves that filter out of devel
 
 | Layer | Guard |
 |---|---|
-| Request | `TenantMiddleware` resolves the tenant, binds it to a context variable, and resets it when the response leaves. Unknown slug → `404`. |
-| Authentication | An API key belongs to exactly one organization. A key sent to another tenant → `401`. |
-| Authorization | `HasTenantRole` requires a membership (or key role) in the active tenant. Non-member → `403`. |
-| Reads | `Model.objects` filters by the active tenant; no tenant → `TenantNotSetError`. Another tenant's id → `404`. |
-| Writes | `save()`, `delete()` and `bulk_create()` assign or verify `organization_id`. Mismatch → `CrossTenantWriteError`. |
+| Request | `TenantMiddleware` resolves the tenant, binds it to a context variable, and resets it when the response leaves. Unknown slug gives `404`. |
+| Authentication | An API key belongs to exactly one organization. A key sent to another tenant gives `401`. |
+| Authorization | `HasTenantRole` requires a membership (or key role) in the active tenant. Non-member gives `403`. |
+| Reads | `Model.objects` filters by the active tenant; no tenant raises `TenantNotSetError`. Another tenant's id gives `404`. |
+| Writes | `save()`, `delete()` and `bulk_create()` assign or verify `organization_id`. Mismatch raises `CrossTenantWriteError`. |
 | Relations | Related-field querysets (`Project.objects`) are evaluated per request, so a foreign id from another tenant fails validation (`400`). `Task.save()` also checks that its project shares its tenant. |
 | Workers | Celery tasks receive an organization id and run inside `tenant_context(org)`. |
 
@@ -157,12 +181,12 @@ curl -u alice:password -H 'X-Tenant: acme' 'localhost:8000/api/audit-logs/?actio
 | Endpoint | Read | Write |
 |---|---|---|
 | `/api/organizations/` | any authenticated user (own orgs) | any authenticated user |
-| `/api/organizations/current/` | member | — |
+| `/api/organizations/current/` | member | none |
 | `/api/projects/` | member | admin (`summarize`: member) |
 | `/api/tasks/` | member | member |
 | `/api/members/` | member | admin (adding owners: owner) |
 | `/api/api-keys/` | admin | admin |
-| `/api/audit-logs/` | admin | — |
+| `/api/audit-logs/` | admin | none |
 
 ## Design decisions
 
@@ -209,17 +233,17 @@ admin wired for scoped managers, or an invitation email flow.
 
 The suites:
 
-- `tests/test_orm_isolation.py` — manager filtering, refusal without a tenant, cross-tenant
+- `tests/test_orm_isolation.py`: manager filtering, refusal without a tenant, cross-tenant
   save/delete/bulk_create, cross-tenant relations, context reset
-- `tests/test_api_isolation.py` — header and subdomain resolution, non-members, foreign ids,
+- `tests/test_api_isolation.py`: header and subdomain resolution, non-members, foreign ids,
   foreign foreign-keys, API key tenant pinning and revocation
-- `tests/test_permissions_and_plans.py` — roles, API key lifecycle, plan limits, audit log,
+- `tests/test_permissions_and_plans.py`: roles, API key lifecycle, plan limits, audit log,
   Celery tasks bound to a tenant
 
 CI runs ruff, a migrations check and pytest on Python 3.12. The code also runs on Python 3.9+.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE).
 
 Author: Ahmed Mahdy
